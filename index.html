@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rock, Paper, Scissors</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; display: grid; min-height: 100vh; place-items: center; background:#f7f7f8; }
+    .app { width: 100%; max-width: 480px; padding: 24px; box-sizing: border-box; }
+    .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+    h1 { margin: 0 0 8px; font-size: 24px; text-align: center; }
+    p.sub { margin: 0 0 16px; color:#555; text-align:center; }
+    .score { display:flex; justify-content: space-between; gap:12px; margin: 12px 0 20px; }
+    .score div { flex:1; background:#f0f2f5; border-radius:12px; padding:10px; text-align:center; }
+    .big { font-size: 22px; font-weight: 700; }
+    .choices { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin: 12px 0 16px;}
+    button { padding:14px 10px; border:none; border-radius:12px; font-size:16px; cursor:pointer; background:#1f6feb; color:white; }
+    button.secondary { background:#e6e9ef; color:#111; }
+    .log { background:#0f172a; color:#e2e8f0; border-radius:12px; padding:12px; min-height:64px; white-space:pre-wrap; }
+    .footer { margin-top: 12px; display:flex; gap:8px; justify-content: space-between; }
+    .small { font-size: 12px; color:#666; text-align:center; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>Rock, Paper, Scissors</h1>
+      <p class="sub">Best of luck. The computer doesn’t blink.</p>
+
+      <div class="score">
+        <div>Wins<br><span id="wins" class="big">0</span></div>
+        <div>Losses<br><span id="losses" class="big">0</span></div>
+        <div>Ties<br><span id="ties" class="big">0</span></div>
+      </div>
+
+      <div class="choices">
+        <button data-move="r">🪨 Rock</button>
+        <button data-move="p">📄 Paper</button>
+        <button data-move="s">✂️ Scissors</button>
+      </div>
+
+      <div class="log" id="log">Make your move…</div>
+
+      <div class="footer">
+        <button id="reset" class="secondary">Reset score</button>
+        <button id="share" class="secondary">Share</button>
+      </div>
+
+      <p class="small">Tip: add this page to your home screen to play offline.</p>
+    </div>
+  </div>
+
+  <script>
+    const winsEl = document.getElementById('wins');
+    const lossesEl = document.getElementById('losses');
+    const tiesEl = document.getElementById('ties');
+    const logEl = document.getElementById('log');
+    const resetBtn = document.getElementById('reset');
+    const shareBtn = document.getElementById('share');
+
+    // Persist scores across sessions
+    const state = JSON.parse(localStorage.getItem('rps-state') || '{"w":0,"l":0,"t":0}');
+    function save(){ localStorage.setItem('rps-state', JSON.stringify(state)); }
+    function render(){
+      winsEl.textContent = state.w;
+      lossesEl.textContent = state.l;
+      tiesEl.textContent = state.t;
+    }
+    render();
+
+    function cpuMove(){
+      return ['r','p','s'][Math.floor(Math.random()*3)];
+    }
+    function label(m){ return m==='r'?'ROCK':m==='p'?'PAPER':'SCISSORS'; }
+
+    function play(player){
+      const cpu = cpuMove();
+      let msg = `You: ${label(player)}\nCPU: ${label(cpu)}\n\n`;
+      if (player === cpu){ state.t++; msg += "It's a tie!"; }
+      else if (
+        (player==='r' && cpu==='s') ||
+        (player==='p' && cpu==='r') ||
+        (player==='s' && cpu==='p')
+      ){ state.w++; msg += "You win!"; }
+      else { state.l++; msg += "You lose!"; }
+      render(); save();
+      logEl.textContent = msg;
+    }
+
+    document.querySelectorAll('button[data-move]').forEach(b=>{
+      b.addEventListener('click', ()=> play(b.dataset.move));
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      state.w = state.l = state.t = 0; save(); render();
+      logEl.textContent = "Scores reset. Fresh start.";
+    });
+
+    shareBtn.addEventListener('click', async ()=>{
+      const url = window.location.href;
+      const text = "Play Rock, Paper, Scissors against the CPU:";
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: "Rock, Paper, Scissors", text, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          alert("Link copied to clipboard:\n" + url);
+        }
+      } catch {}
+    });
+
+    // Tiny offline cache (no service worker needed for basic usage)
+    // Works once page is loaded; for true PWA, add a service worker later.
+  </script>
+</body>
+</html>
